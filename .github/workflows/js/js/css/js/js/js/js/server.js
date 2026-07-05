@@ -4,14 +4,19 @@ const { Server } = require("socket.io");
 
 const app = express();
 const server = http.createServer(app);
+
 const io = new Server(server, {
     cors: {
         origin: "*"
     }
 });
 
-// waiting user queue
-let waitingUser = null;
+// ============================
+// STATE
+// ============================
+
+let waitingQueue = [];
+let socketRoomMap = new Map();
 
 // ============================
 // SOCKET CONNECTION
@@ -22,35 +27,65 @@ io.on("connection", (socket) => {
     console.log("User connected:", socket.id);
 
     // ============================
-    // FIND STRANGER MATCHMAKING
+    // FIND STRANGER
     // ============================
 
     socket.on("find-stranger", () => {
 
-        if (waitingUser) {
+        // avoid duplicates in queue
+        waitingQueue = waitingQueue.filter(s => s.id !== socket.id);
 
-            // pair users into a room
-            const room = `${waitingUser.id}#${socket.id}`;
+        if (waitingQueue.length > 0) {
 
+            const partner = waitingQueue.shift();
+
+            const room = `${partner.id}#${socket.id}`;
+
+            partner.join(room);
             socket.join(room);
-            waitingUser.join(room);
 
-            socket.emit("matched", { room, initiator: false });
-            waitingUser.emit("matched", { room, initiator: true });
+            socketRoomMap.set(socket.id, room);
+            socketRoomMap.set(partner.id, room);
 
-            waitingUser = null;
+            partner.emit("matched", {
+                room,
+                initiator: true
+            });
 
-            console.log("Matched 2 users:", room);
+            socket.emit("matched", {
+                room,
+                initiator: false
+            });
+
+            console.log("Matched:", room);
 
         } else {
-
-            waitingUser = socket;
+            waitingQueue.push(socket);
             socket.emit("waiting");
         }
     });
 
     // ============================
-    // WEBRTC SIGNAL RELAY
+    // NEXT / REQUEUE HANDLING
+    // ============================
+
+    socket.on("next-stranger", () => {
+
+        const room = socketRoomMap.get(socket.id);
+
+        if (room) {
+            socket.to(room).emit("partner-disconnected");
+        }
+
+        socket.leaveAll();
+        socketRoomMap.delete(socket.id);
+
+        waitingQueue.push(socket);
+        socket.emit("waiting");
+    });
+
+    // ============================
+    // WEBRTC RELAY (SAFE)
     // ============================
 
     socket.on("offer", ({ room, offer }) => {
@@ -66,16 +101,22 @@ io.on("connection", (socket) => {
     });
 
     // ============================
-    // DISCONNECT HANDLING
+    // DISCONNECT CLEANUP
     // ============================
 
     socket.on("disconnect", () => {
 
-        if (waitingUser && waitingUser.id === socket.id) {
-            waitingUser = null;
-        }
-
         console.log("User disconnected:", socket.id);
+
+        // remove from queue
+        waitingQueue = waitingQueue.filter(s => s.id !== socket.id);
+
+        const room = socketRoomMap.get(socket.id);
+
+        if (room) {
+            socket.to(room).emit("partner-disconnected");
+            socketRoomMap.delete(socket.id);
+        }
     });
 });
 
