@@ -1,0 +1,153 @@
+/* ============================
+   VIDEO STAGE BACKGROUND
+============================ */
+
+.videoStage {
+    background: radial-gradient(circle at center, #0b0f17 0%, #070a10 100%);
+}
+
+/* ============================
+   VIDEO CANVAS
+============================ */
+
+#videoCanvas {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+/* ============================
+   VIDEO CARD CORE STYLE
+============================ */
+
+.videoCard {
+    border-radius: 14px;
+    overflow: hidden;
+    background: #0f172a;
+    border: 1px solid #1f2937;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* hover lift effect */
+.videoCard:hover {
+    box-shadow: 0 15px 40px rgba(0,0,0,0.7);
+}
+
+/* ============================
+   VIDEO HEADER
+============================ */
+
+.videoHeader {
+    height: 30px;
+    display: flex;
+    align-items: center;
+    padding: 0 10px;
+    font-size: 12px;
+    background: linear-gradient(to right, #0f172a, #111827);
+    border-bottom: 1px solid #1f2937;
+    user-select: none;
+}
+
+/* ============================
+   VIDEO BODY
+============================ */
+
+.videoBody {
+    width: 100%;
+    height: calc(100% - 30px);
+    background: black;
+    position: relative;
+}
+
+/* actual video element */
+.videoBody video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    background: black;
+}
+
+/* ============================
+   LOCAL VIDEO (YOU)
+============================ */
+
+.videoCard.local {
+    border: 1px solid #2563eb;
+}
+
+/* small "you" glow */
+.videoCard.local::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 14px;
+    box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.3);
+    pointer-events: none;
+}
+
+/* ============================
+   REMOTE VIDEO (STRANGER)
+============================ */
+
+.videoCard.remote {
+    border: 1px solid #10b981;
+}
+
+/* green glow for stranger */
+.videoCard.remote::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 14px;
+    box-shadow: inset 0 0 0 1px rgba(16, 185, 129, 0.25);
+    pointer-events: none;
+}
+
+/* placeholder styling */
+.remotePlaceholder {
+    font-size: 13px;
+    text-align: center;
+    padding: 10px;
+}
+
+/* ============================
+   RESIZE HANDLE
+============================ */
+
+.resizeHandle {
+    width: 12px;
+    height: 12px;
+    background: #2563eb;
+    position: absolute;
+    right: 4px;
+    bottom: 4px;
+    border-radius: 3px;
+    cursor: nwse-resize;
+    opacity: 0.7;
+    transition: 0.2s;
+}
+
+.resizeHandle:hover {
+    opacity: 1;
+    transform: scale(1.1);
+}
+
+/* ============================
+   LOADING STATE (optional future use)
+============================ */
+
+.videoCard.loading {
+    filter: blur(1px);
+    opacity: 0.7;
+}
+
+/* ============================
+   VIDEO SMOOTHING
+============================ */
+
+video {
+    transform: translateZ(0);
+    backface-visibility: hidden;
+}
