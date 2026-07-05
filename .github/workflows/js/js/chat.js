@@ -2,7 +2,19 @@ const chatMessages = document.querySelector(".chatMessages");
 const chatInput = document.querySelector(".chatInput input");
 const sendBtn = document.querySelector(".chatInput button");
 
-let shouldAutoScroll = true;
+let socket = null;
+let currentRoom = null;
+
+// ============================
+// INIT SOCKET FROM WEBRTC
+// ============================
+
+window.setChatContext = function (_socket, room) {
+    socket = _socket;
+    currentRoom = room;
+
+    listenForMessages();
+};
 
 // ============================
 // SEND MESSAGE
@@ -17,19 +29,39 @@ chatInput.addEventListener("keydown", (e) => {
 function sendMessage() {
 
     const text = chatInput.value.trim();
-    if (!text) return;
+    if (!text || !socket || !currentRoom) return;
 
+    // show locally
     const msg = createMessage(text, "me");
-
     chatMessages.appendChild(msg);
 
-    chatInput.value = "";
+    // send to stranger
+    socket.emit("chat-message", {
+        room: currentRoom,
+        message: text
+    });
 
+    chatInput.value = "";
     handleAutoScroll();
 }
 
 // ============================
-// CREATE MESSAGE
+// RECEIVE MESSAGES
+// ============================
+
+function listenForMessages() {
+
+    socket.on("chat-message", (text) => {
+
+        const msg = createMessage(text, "stranger");
+        chatMessages.appendChild(msg);
+
+        handleAutoScroll();
+    });
+}
+
+// ============================
+// MESSAGE UI
 // ============================
 
 function createMessage(text, type = "me") {
@@ -43,7 +75,7 @@ function createMessage(text, type = "me") {
 }
 
 // ============================
-// SYSTEM MESSAGE (for matchmaking)
+// SYSTEM MESSAGE
 // ============================
 
 window.addSystemMessage = function(text) {
@@ -59,31 +91,10 @@ window.addSystemMessage = function(text) {
 };
 
 // ============================
-// AUTO SCROLL CONTROL
+// AUTO SCROLL
 // ============================
 
 function handleAutoScroll() {
-
-    const threshold = 80; // px from bottom
-
-    const distanceFromBottom =
-        chatMessages.scrollHeight -
-        chatMessages.scrollTop -
-        chatMessages.clientHeight;
-
-    // only auto-scroll if user is near bottom
-    shouldAutoScroll = distanceFromBottom < threshold;
-
-    if (shouldAutoScroll) {
-        chatMessages.scrollTop = chatMessages.scrollHeight;
-    }
-}
-
-// ============================
-// OPTIONAL: lock scroll on manual scroll up
-// ============================
-
-chatMessages.addEventListener("scroll", () => {
 
     const threshold = 80;
 
@@ -92,5 +103,7 @@ chatMessages.addEventListener("scroll", () => {
         chatMessages.scrollTop -
         chatMessages.clientHeight;
 
-    shouldAutoScroll = distanceFromBottom < threshold;
-});
+    if (distanceFromBottom < threshold) {
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+}
