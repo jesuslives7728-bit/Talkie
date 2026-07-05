@@ -12,12 +12,13 @@ const io = new Server(server, {
     }
 });
 
-// ============================
-// OPTIONAL: serve frontend
-// (prevents "Cannot GET /")
-// ============================
 
-app.use(express.static(path.join(__dirname, "public")));
+// ============================
+// FIX: SERVE FRONTEND (IMPORTANT)
+// ============================
+// This fixes "Cannot GET /"
+app.use(express.static(__dirname));
+
 
 // ============================
 // STATE
@@ -25,6 +26,7 @@ app.use(express.static(path.join(__dirname, "public")));
 
 let waitingQueue = [];
 const socketRoomMap = new Map();
+
 
 // ============================
 // HELPERS
@@ -45,6 +47,7 @@ function leaveRoom(socket) {
 
     return room;
 }
+
 
 // ============================
 // SOCKET.IO
@@ -132,7 +135,7 @@ io.on("connection", (socket) => {
     });
 
     // ============================
-    // DISCONNECT
+    // DISCONNECT CLEANUP
     // ============================
 
     socket.on("disconnect", () => {
@@ -143,6 +146,7 @@ io.on("connection", (socket) => {
         leaveRoom(socket);
     });
 });
+
 
 // ============================
 // START SERVER (RENDER SAFE)
