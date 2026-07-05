@@ -5,23 +5,52 @@ let offsetX = 0;
 let offsetY = 0;
 
 // ============================
-// INIT DRAGGABLE ELEMENTS
+// INIT SYSTEM
 // ============================
 
-function initDraggableVideos() {
-    const videos = document.querySelectorAll(".videoCard");
+window.addEventListener("load", () => {
+    initDraggableVideos();
 
-    videos.forEach(video => {
-        enableDrag(video);
-        enableResize(video);
+    // watch for new video cards (IMPORTANT FIX)
+    observeVideoCanvas();
+});
+
+// ============================
+// OBSERVER (handles WebRTC dynamic UI)
+// ============================
+
+function observeVideoCanvas() {
+
+    const observer = new MutationObserver(() => {
+        initDraggableVideos();
+    });
+
+    observer.observe(canvas, {
+        childList: true,
+        subtree: true
     });
 }
 
-// run after DOM loads
-window.addEventListener("load", initDraggableVideos);
+// ============================
+// APPLY DRAG + RESIZE
+// ============================
+
+function initDraggableVideos() {
+
+    const videos = document.querySelectorAll(".videoCard");
+
+    videos.forEach(video => {
+
+        if (!video.dataset.draggable) {
+            enableDrag(video);
+            enableResize(video);
+            video.dataset.draggable = "true";
+        }
+    });
+}
 
 // ============================
-// DRAG FUNCTIONALITY
+// DRAG
 // ============================
 
 function enableDrag(el) {
@@ -32,6 +61,9 @@ function enableDrag(el) {
     header.style.cursor = "grab";
 
     header.addEventListener("mousedown", (e) => {
+
+        // prevent resize handle triggering drag
+        if (e.target.classList.contains("resizeHandle")) return;
 
         activeDrag = el;
 
@@ -57,7 +89,7 @@ function dragMove(e) {
     let x = e.clientX - canvasRect.left - offsetX;
     let y = e.clientY - canvasRect.top - offsetY;
 
-    // keep inside bounds
+    // clamp inside canvas
     x = Math.max(0, Math.min(x, canvasRect.width - activeDrag.offsetWidth));
     y = Math.max(0, Math.min(y, canvasRect.height - activeDrag.offsetHeight));
 
@@ -72,10 +104,12 @@ function stopDrag() {
 }
 
 // ============================
-// RESIZE FUNCTIONALITY
+// RESIZE
 // ============================
 
 function enableResize(el) {
+
+    if (el.querySelector(".resizeHandle")) return;
 
     const handle = document.createElement("div");
     handle.className = "resizeHandle";
@@ -88,7 +122,8 @@ function enableResize(el) {
         right: "4px",
         bottom: "4px",
         cursor: "nwse-resize",
-        borderRadius: "3px"
+        borderRadius: "3px",
+        zIndex: 2000
     });
 
     el.appendChild(handle);
