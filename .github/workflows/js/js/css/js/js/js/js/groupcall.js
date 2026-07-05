@@ -1,8 +1,11 @@
 let peerConnection;
-let localStreamGlobal;
+let localStream;
 let remoteStream;
 
-// STUN server (required for WebRTC)
+let currentSocket = null;
+let currentRoom = null;
+let isInitiator = false;
+
 const servers = {
     iceServers: [
         {
@@ -12,36 +15,42 @@ const servers = {
 };
 
 // ============================
-// INIT WEBRTC SYSTEM
+// ENTRY FROM MATCHMAKING
 // ============================
 
-window.initCallSystem = async function () {
+window.startWebRTC = async function (socket, room, initiator) {
 
-    try {
+    currentSocket = socket;
+    currentRoom = room;
+    isInitiator = initiator;
 
-        localStreamGlobal = await navigator.mediaDevices.getUserMedia({
-            video: true,
-            audio: true
-        });
-
-        const localVideo = document.querySelector(".videoCard.local video");
-
-        if (localVideo) {
-            localVideo.srcObject = localStreamGlobal;
-        }
-
-        setupPeer();
-
-    } catch (err) {
-        console.error("Camera/mic error:", err);
-    }
+    await startLocalStream();
+    createPeerConnection();
 };
 
 // ============================
-// CREATE PEER CONNECTION
+// GET CAMERA
 // ============================
 
-function setupPeer() {
+async function startLocalStream() {
+
+    localStream = await navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio: true
+    });
+
+    const localVideo = document.querySelector(".videoCard.local video");
+
+    if (localVideo) {
+        localVideo.srcObject = localStream;
+    }
+}
+
+// ============================
+// PEER SETUP
+// ============================
+
+function createPeerConnection() {
 
     peerConnection = new RTCPeerConnection(servers);
 
@@ -54,8 +63,8 @@ function setupPeer() {
     }
 
     // add local tracks
-    localStreamGlobal.getTracks().forEach(track => {
-        peerConnection.addTrack(track, localStreamGlobal);
+    localStream.getTracks().forEach(track => {
+        peerConnection.addTrack(track, localStream);
     });
 
     // receive remote tracks
@@ -65,66 +74,70 @@ function setupPeer() {
         });
     };
 
-    // ICE candidates (normally sent to server)
+    // ICE → server
     peerConnection.onicecandidate = (event) => {
-        if (event.candidate) {
-            console.log("ICE candidate:", event.candidate);
+        if (event.candidate && currentSocket) {
+            currentSocket.emit("ice-candidate", {
+                room: currentRoom,
+                candidate: event.candidate
+            });
         }
     };
 
-    createOffer();
+    // listen ICE from server
+    currentSocket.on("ice-candidate", async (candidate) => {
+        try {
+            await peerConnection.addIceCandidate(candidate);
+        } catch (e) {
+            console.log("ICE error", e);
+        }
+    });
+
+    // offer/answer flow
+    setupSignaling();
+
+    // initiator creates offer
+    if (isInitiator) {
+        createOffer();
+    }
 }
 
 // ============================
-// CREATE OFFER (FAKE LOCAL TEST)
+// SIGNAL HANDLERS
+// ============================
+
+function setupSignaling() {
+
+    currentSocket.on("offer", async (offer) => {
+
+        await peerConnection.setRemoteDescription(offer);
+
+        const answer = await peerConnection.createAnswer();
+        await peerConnection.setLocalDescription(answer);
+
+        currentSocket.emit("answer", {
+            room: currentRoom,
+            answer
+        });
+    });
+
+    currentSocket.on("answer", async (answer) => {
+        await peerConnection.setRemoteDescription(answer);
+    });
+}
+
+// ============================
+// CREATE OFFER
 // ============================
 
 async function createOffer() {
 
     const offer = await peerConnection.createOffer();
+
     await peerConnection.setLocalDescription(offer);
 
-    console.log("Offer created:", offer);
-
-    // simulate "server loopback" for testing
-    simulateAnswer(offer);
-}
-
-// ============================
-// SIMULATED ANSWER (FAKE STRANGER)
-// ============================
-
-async function simulateAnswer(offer) {
-
-    const fakePeer = new RTCPeerConnection(servers);
-
-    fakePeer.ontrack = (event) => {
-        // ignore (we already show local stream as test)
-    };
-
-    const stream = await navigator.mediaDevices.getUserMedia({
-        video: true,
-        audio: true
+    currentSocket.emit("offer", {
+        room: currentRoom,
+        offer
     });
-
-    stream.getTracks().forEach(track => {
-        fakePeer.addTrack(track, stream);
-    });
-
-    await fakePeer.setRemoteDescription(offer);
-
-    const answer = await fakePeer.createAnswer();
-    await fakePeer.setLocalDescription(answer);
-
-    await peerConnection.setRemoteDescription(answer);
-
-    console.log("Fake connection established");
 }
-
-// ============================
-// START CALL HOOK
-// ============================
-
-window.startRealCall = function () {
-    window.initCallSystem();
-};
