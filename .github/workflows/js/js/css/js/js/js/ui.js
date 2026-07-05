@@ -7,24 +7,27 @@ const layoutBtn = document.querySelector(".controls button:nth-child(7)");
 
 const videoCanvas = document.getElementById("videoCanvas");
 
+// socket reference (from matchmaking.js)
+const socket = window.socket;
+
 // ============================
-// FIND STRANGER (MAIN FLOW)
+// FIND STRANGER
 // ============================
 
 findStrangerBtn.addEventListener("click", () => {
-    if (window.startSearch) {
-        window.startSearch();
+
+    if (socket) {
+        socket.emit("find-stranger");
     }
+
 });
 
 // ============================
-// ADD PEOPLE (placeholder group call)
+// ADD PEOPLE (placeholder)
 // ============================
 
 addPeopleBtn.addEventListener("click", () => {
-
     alert("Group call feature coming next step");
-
 });
 
 // ============================
@@ -32,77 +35,66 @@ addPeopleBtn.addEventListener("click", () => {
 // ============================
 
 inviteFriendsBtn.addEventListener("click", () => {
-
     alert("Invite system coming next step");
-
 });
 
 // ============================
-// NEXT STRANGER BUTTON (footer)
+// NEXT STRANGER (REAL)
 // ============================
 
 if (strangerFooterBtn) {
+
     strangerFooterBtn.addEventListener("click", () => {
 
-        if (window.startSearch) {
-            window.startSearch();
+        if (socket) {
+            socket.emit("next-stranger");
         }
 
         if (window.addSystemMessage) {
-            window.addSystemMessage("🔄 Switching to next stranger...");
+            window.addSystemMessage("🔄 Connecting to next stranger...");
         }
 
-        // remove current remote video
-        const remote = document.querySelector(".videoCard.remote");
-        if (remote) remote.remove();
-
-        // respawn placeholder
-        if (window.spawnStrangerVideo) {
-            setTimeout(() => {
-                window.spawnStrangerVideo();
-            }, 1000);
-        }
     });
 }
 
 // ============================
-// LAYOUT BUTTON (simple toggle demo)
+// LAYOUT TOGGLE
 // ============================
 
 let compactMode = false;
 
 if (layoutBtn) {
+
     layoutBtn.addEventListener("click", () => {
 
         compactMode = !compactMode;
 
-        if (compactMode) {
-            videoCanvas.style.transform = "scale(0.9)";
-            videoCanvas.style.transition = "0.3s";
-        } else {
-            videoCanvas.style.transform = "scale(1)";
-        }
+        videoCanvas.style.transform = compactMode
+            ? "scale(0.9)"
+            : "scale(1)";
+
+        videoCanvas.style.transition = "0.3s";
 
         if (window.addSystemMessage) {
             window.addSystemMessage(
-                compactMode ? "📐 Compact layout enabled" : "📐 Normal layout restored"
+                compactMode
+                    ? "📐 Compact layout enabled"
+                    : "📐 Normal layout restored"
             );
         }
     });
 }
 
 // ============================
-// GLOBAL KEYBOARD SHORTCUTS
+// KEYBOARD SHORTCUTS
 // ============================
 
 document.addEventListener("keydown", (e) => {
 
-    // N = next stranger
     if (e.key.toLowerCase() === "n") {
-        if (window.startSearch) window.startSearch();
+        socket?.emit("next-stranger");
     }
 
-    // L = layout toggle
     if (e.key.toLowerCase() === "l") {
         layoutBtn.click();
     }
