@@ -6,9 +6,7 @@ const app = express();
 const server = http.createServer(app);
 
 const io = new Server(server, {
-    cors: {
-        origin: "*"
-    }
+    cors: { origin: "*" }
 });
 
 // ============================
@@ -17,6 +15,18 @@ const io = new Server(server, {
 
 let waitingQueue = [];
 let socketRoomMap = new Map();
+
+// ============================
+// HELPERS
+// ============================
+
+function removeFromQueue(socketId) {
+    waitingQueue = waitingQueue.filter(s => s.id !== socketId);
+}
+
+function getPartnerRoom(socketId) {
+    return socketRoomMap.get(socketId);
+}
 
 // ============================
 // SOCKET CONNECTION
@@ -32,12 +42,19 @@ io.on("connection", (socket) => {
 
     socket.on("find-stranger", () => {
 
-        // avoid duplicates in queue
-        waitingQueue = waitingQueue.filter(s => s.id !== socket.id);
+        removeFromQueue(socket.id);
+
+        // prevent double matchmaking
+        if (socketRoomMap.has(socket.id)) return;
 
         if (waitingQueue.length > 0) {
 
             const partner = waitingQueue.shift();
+
+            if (!partner || partner.disconnected) {
+                socket.emit("waiting");
+                return;
+            }
 
             const room = `${partner.id}#${socket.id}`;
 
@@ -66,7 +83,7 @@ io.on("connection", (socket) => {
     });
 
     // ============================
-    // NEXT / REQUEUE HANDLING
+    // NEXT STRANGER
     // ============================
 
     socket.on("next-stranger", () => {
@@ -75,17 +92,19 @@ io.on("connection", (socket) => {
 
         if (room) {
             socket.to(room).emit("partner-disconnected");
+
+            socket.leave(room);
+            socketRoomMap.delete(socket.id);
         }
 
-        socket.leaveAll();
-        socketRoomMap.delete(socket.id);
+        removeFromQueue(socket.id);
 
         waitingQueue.push(socket);
         socket.emit("waiting");
     });
 
     // ============================
-    // WEBRTC RELAY (SAFE)
+    // WEBRTC RELAY
     // ============================
 
     socket.on("offer", ({ room, offer }) => {
@@ -101,15 +120,14 @@ io.on("connection", (socket) => {
     });
 
     // ============================
-    // DISCONNECT CLEANUP
+    // DISCONNECT
     // ============================
 
     socket.on("disconnect", () => {
 
         console.log("User disconnected:", socket.id);
 
-        // remove from queue
-        waitingQueue = waitingQueue.filter(s => s.id !== socket.id);
+        removeFromQueue(socket.id);
 
         const room = socketRoomMap.get(socket.id);
 
