@@ -3,10 +3,18 @@ const statusText = document.getElementById("callStatusText");
 const subText = document.getElementById("callSubText");
 const cancelBtn = document.getElementById("cancelSearchBtn");
 
-const findBtn = document.querySelector(".primaryButton"); // 🌍 Find Stranger
+const findBtn = document.querySelector(".primaryButton");
 
 let searching = false;
-let searchTimeout = null;
+let socket = null;
+
+// ============================
+// INIT SOCKET (FROM APP)
+// ============================
+
+window.initMatchmaking = function (_socket) {
+    socket = _socket;
+};
 
 // ============================
 // START SEARCH
@@ -15,39 +23,60 @@ let searchTimeout = null;
 findBtn.addEventListener("click", startSearch);
 
 function startSearch() {
-    if (searching) return;
+
+    if (searching || !socket) return;
 
     searching = true;
 
-    // show overlay
     callOverlay.classList.remove("hidden");
 
     statusText.textContent = "Finding someone to talk to...";
     subText.textContent = "Searching for a random stranger...";
 
-    // simulate matchmaking delay
-    searchTimeout = setTimeout(() => {
-        connectStranger();
-    }, 3000 + Math.random() * 3000);
+    // REAL matchmaking request
+    socket.emit("find-stranger");
 }
 
 // ============================
-// CONNECT STRANGER
+// SOCKET EVENTS
 // ============================
 
-function connectStranger() {
+if (typeof window !== "undefined") {
 
-    statusText.textContent = "Stranger found!";
-    subText.textContent = "Connecting you now...";
+    // waiting state
+    window.handleWaitingState = function () {
+        statusText.textContent = "Waiting for a stranger...";
+        subText.textContent = "Hold on, matching you...";
+    };
 
-    setTimeout(() => {
-        callOverlay.classList.add("hidden");
-        searching = false;
+    // matched state
+    window.handleMatched = function (data) {
 
-        // trigger fake "user joined"
-        triggerCallConnected();
+        statusText.textContent = "Stranger found!";
+        subText.textContent = "Connecting you now...";
 
-    }, 1500);
+        setTimeout(() => {
+
+            callOverlay.classList.add("hidden");
+            searching = false;
+
+            // START REAL CALL
+            if (window.startWebRTC) {
+                window.startWebRTC(socket, data.room, data.initiator);
+            }
+
+            // START CHAT CONTEXT
+            if (window.setChatContext) {
+                window.setChatContext(socket, data.room);
+            }
+
+            // UI message
+            if (window.addSystemMessage) {
+                window.addSystemMessage("🔗 Connected to a stranger");
+            }
+
+        }, 800);
+    };
 }
 
 // ============================
@@ -56,32 +85,14 @@ function connectStranger() {
 
 cancelBtn.addEventListener("click", () => {
 
-    if (!searching) return;
+    if (!searching || !socket) return;
 
-    clearTimeout(searchTimeout);
     searching = false;
+
+    socket.emit("cancel-search");
 
     callOverlay.classList.add("hidden");
 
     statusText.textContent = "Finding someone to talk to...";
     subText.textContent = "You will be connected to a random stranger";
 });
-
-// ============================
-// CALL CONNECTED EVENT
-// ============================
-
-function triggerCallConnected() {
-
-    // simple placeholder behavior for now
-    const chat = document.querySelector(".chatMessages");
-
-    if (chat) {
-        const msg = document.createElement("div");
-        msg.className = "systemMessage";
-        msg.textContent = "🔗 Connected to a new stranger";
-        chat.appendChild(msg);
-    }
-
-    console.log("Stranger connected (placeholder)");
-}
