@@ -5,16 +5,35 @@ const sendBtn = document.querySelector(".chatInput button");
 let socket = null;
 let currentRoom = null;
 
+let messageListener = null;
+
 // ============================
-// INIT SOCKET FROM WEBRTC
+// INIT FROM WEBRTC
 // ============================
 
 window.setChatContext = function (_socket, room) {
+
     socket = _socket;
     currentRoom = room;
 
+    resetChat();        // IMPORTANT FIX
     listenForMessages();
 };
+
+// ============================
+// RESET CHAT (IMPORTANT FIX)
+// ============================
+
+function resetChat() {
+
+    chatMessages.innerHTML = "";
+
+    if (socket && messageListener) {
+        socket.off("chat-message", messageListener);
+    }
+
+    messageListener = null;
+}
 
 // ============================
 // SEND MESSAGE
@@ -31,11 +50,9 @@ function sendMessage() {
     const text = chatInput.value.trim();
     if (!text || !socket || !currentRoom) return;
 
-    // show locally
     const msg = createMessage(text, "me");
     chatMessages.appendChild(msg);
 
-    // send to stranger
     socket.emit("chat-message", {
         room: currentRoom,
         message: text
@@ -46,18 +63,20 @@ function sendMessage() {
 }
 
 // ============================
-// RECEIVE MESSAGES
+// RECEIVE MESSAGES (SAFE LISTENER)
 // ============================
 
 function listenForMessages() {
 
-    socket.on("chat-message", (text) => {
+    messageListener = (text) => {
 
         const msg = createMessage(text, "stranger");
         chatMessages.appendChild(msg);
 
         handleAutoScroll();
-    });
+    };
+
+    socket.on("chat-message", messageListener);
 }
 
 // ============================
@@ -68,7 +87,6 @@ function createMessage(text, type = "me") {
 
     const div = document.createElement("div");
     div.classList.add("message", type);
-
     div.textContent = text;
 
     return div;
@@ -78,11 +96,10 @@ function createMessage(text, type = "me") {
 // SYSTEM MESSAGE
 // ============================
 
-window.addSystemMessage = function(text) {
+window.addSystemMessage = function (text) {
 
     const div = document.createElement("div");
     div.classList.add("message", "system");
-
     div.textContent = text;
 
     chatMessages.appendChild(div);
