@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0">
+
+    <title>Talkie</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/layout.css">
+    <link rel="stylesheet" href="css/sidebar.css">
+    <link rel="stylesheet" href="css/video.css">
+    <link rel="stylesheet" href="css/chat.css">
+    <link rel="stylesheet" href="css/modal.css">
+    <link rel="stylesheet" href="css/animations.css">
+
+</head>
+
+<body>
+
+<div class="app">
+
+<!-- ============================= -->
+<!-- HEADER -->
+<!-- ============================= -->
+
+<header class="topbar">
+
+<div class="logo">
+
+<div class="logoIcon">🎥</div>
+
+<div class="logoText">
+
+<h2>Talkie</h2>
+
+<span>Meet • Chat • Group Call</span>
+
+</div>
+
+</div>
+
+
+<div class="headerCenter">
+
+<button class="primaryButton">
+
+🌍 Find Stranger
+
+</button>
+
+<button class="secondaryButton">
+
+➕ Add People
+
+</button>
+
+<button class="secondaryButton">
+
+👥 Invite Friends
+
+</button>
+
+</div>
+
+
+<div class="profile">
+
+<img src="assets/avatar.jpg" class="avatar">
+
+<div>
+
+<h4>Jonathan</h4>
+
+<p>Online</p>
+
+</div>
+
+</div>
+
+</header>
+
+
+<!-- ============================= -->
+<!-- MAIN -->
+<!-- ============================= -->
+
+<div class="mainLayout">
+
+
+<!-- ============================= -->
+<!-- SIDEBAR -->
+<!-- ============================= -->
+
+<aside class="sidebar">
+
+<h3>Match Filters</h3>
+
+<div class="filter">
+
+<label>Gender</label>
+
+<select>
+
+<option>Anyone</option>
+<option>Male</option>
+<option>Female</option>
+
+</select>
+
+</div>
+
+<div class="filter">
+
+<label>Age</label>
+
+<select>
+
+<option>18-24</option>
+<option>25-34</option>
+<option>35-44</option>
+
+</select>
+
+</div>
+
+<div class="filter">
+
+<label>Country</label>
+
+<select>
+
+<option>Worldwide</option>
+
+</select>
+
+</div>
+
+<div class="filter">
+
+<label>Language</label>
+
+<select>
+
+<option>English</option>
+
+</select>
+
+</div>
+
+<div class="filter">
+
+<label>Interests</label>
+
+<div class="interestGrid">
+
+<div>Gaming</div>
+<div>Music</div>
+<div>Sports</div>
+<div>Anime</div>
+<div>Fitness</div>
+<div>Programming</div>
+<div>Movies</div>
+<div>Cars</div>
+<div>Travel</div>
+<div>Pets</div>
+
+</div>
+
+</div>
+
+
+<hr>
+
+
+<h3>Friends</h3>
+
+<div class="friendsList">
+
+<div class="friendCard">
+
+<img src="assets/avatar2.jpg">
+
+<div>
+
+<h4>Emma</h4>
+
+<span>Online</span>
+
+</div>
+
+<button>Call</button>
+
+</div>
+
+<div class="friendCard">
+
+<img src="assets/avatar3.jpg">
+
+<div>
+
+<h4>James</h4>
+
+<span>Away</span>
+
+</div>
+
+<button>Invite</button>
+
+</div>
+
+</div>
+
+</aside>
+
+
+<!-- ============================= -->
+<!-- VIDEO AREA -->
+<!-- ============================= -->
+
+<main class="videoStage">
+
+<div id="videoCanvas">
+
+<!-- draggable video windows go here -->
+
+</div>
+
+</main>
+
+
+<!-- ============================= -->
+<!-- CHAT -->
+<!-- ============================= -->
+
+<aside class="chatPanel">
+
+<div class="chatHeader">
+
+<h3>Chat</h3>
+
+</div>
+
+<div class="chatMessages">
+
+<!-- messages -->
+
+</div>
+
+<div class="chatInput">
+
+<input
+type="text"
+placeholder="Send message...">
+
+<button>
+
+Send
+
+</button>
+
+</div>
+
+</aside>
+
+</div>
+
+
+
+<!-- ============================= -->
+<!-- CONTROL BAR -->
+<!-- ============================= -->
+
+<footer class="controls">
+
+<button>🎤</button>
+
+<button>📷</button>
+
+<button>🖥️</button>
+
+<button>💬</button>
+
+<button>➕ Add</button>
+
+<button>🌍 Stranger</button>
+
+<button>🎨 Layout</button>
+
+<button>⚙ Settings</button>
+
+<button class="leave">
+
+Leave
+
+</button>
+
+</footer>
+
+
+<script src="js/app.js"></script>
+
+<script src="js/ui.js"></script>
+
+<script src="js/video.js"></script>
+
+<script src="js/draggable.js"></script>
+
+<script src="js/groupcall.js"></script>
+
+<script src="js/matchmaking.js"></script>
+
+<script src="js/chat.js"></script>
+
+<script src="js/storage.js"></script>
+
+<script src="js/settings.js"></script>
+
+</body>
+
+</html>
