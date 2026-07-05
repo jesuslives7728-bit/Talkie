@@ -1,6 +1,7 @@
 const canvas = document.getElementById("videoCanvas");
 
-let localStream = null;
+let localVideoEl = null;
+let remoteVideoEl = null;
 
 // ============================
 // INIT VIDEO SYSTEM
@@ -8,64 +9,66 @@ let localStream = null;
 
 window.addEventListener("load", initVideoSystem);
 
-async function initVideoSystem() {
-
-    await setupLocalVideo();
-    createRemoteVideoPlaceholder();
-
+function initVideoSystem() {
+    setupLocalVideo();
+    setupRemoteVideo();
 }
 
 // ============================
-// LOCAL VIDEO
+// LOCAL VIDEO SLOT
 // ============================
 
 async function setupLocalVideo() {
 
-    const localVideo = document.createElement("video");
-    localVideo.autoplay = true;
-    localVideo.muted = true;
-    localVideo.playsInline = true;
+    localVideoEl = document.createElement("video");
+    localVideoEl.autoplay = true;
+    localVideoEl.muted = true;
+    localVideoEl.playsInline = true;
+
+    const card = createVideoCard("You", "local");
+
+    card.querySelector(".videoBody").appendChild(localVideoEl);
+    canvas.appendChild(card);
 
     try {
-        localStream = await navigator.mediaDevices.getUserMedia({
+        const stream = await navigator.mediaDevices.getUserMedia({
             video: true,
             audio: true
         });
 
-        localVideo.srcObject = localStream;
+        localVideoEl.srcObject = stream;
+
+        // expose for WebRTC
+        window.localStreamForCall = stream;
 
     } catch (err) {
-        console.warn("Camera/mic blocked or unavailable", err);
+        console.warn("Camera blocked:", err);
     }
-
-    const card = createVideoCard("You", "local");
-    card.querySelector(".videoBody").appendChild(localVideo);
-
-    canvas.appendChild(card);
 }
 
 // ============================
-// REMOTE VIDEO (PLACEHOLDER)
+// REMOTE VIDEO SLOT (IMPORTANT)
 // ============================
 
-function createRemoteVideoPlaceholder() {
+function setupRemoteVideo() {
+
+    remoteVideoEl = document.createElement("video");
+    remoteVideoEl.autoplay = true;
+    remoteVideoEl.playsInline = true;
 
     const card = createVideoCard("Stranger", "remote");
 
     const placeholder = document.createElement("div");
     placeholder.className = "remotePlaceholder";
-
     placeholder.innerText = "Waiting for stranger...";
 
-    placeholder.style.color = "#aaa";
-    placeholder.style.display = "flex";
-    placeholder.style.alignItems = "center";
-    placeholder.style.justifyContent = "center";
-    placeholder.style.height = "100%";
-
+    card.querySelector(".videoBody").appendChild(remoteVideoEl);
     card.querySelector(".videoBody").appendChild(placeholder);
 
     canvas.appendChild(card);
+
+    // expose for WebRTC
+    window.remoteVideoForCall = remoteVideoEl;
 }
 
 // ============================
@@ -93,25 +96,3 @@ function createVideoCard(name, type) {
 
     return card;
 }
-
-// ============================
-// REPLACE STRANGER (later matchmaking)
-// ============================
-
-window.spawnStrangerVideo = function () {
-
-    const existing = document.querySelector(".videoCard.remote");
-    if (existing) existing.remove();
-
-    const card = createVideoCard("Stranger", "remote");
-
-    const video = document.createElement("video");
-    video.autoplay = true;
-    video.playsInline = true;
-
-    card.querySelector(".videoBody").appendChild(video);
-
-    canvas.appendChild(card);
-
-    return card;
-};
