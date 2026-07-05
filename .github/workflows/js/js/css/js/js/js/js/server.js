@@ -1,20 +1,30 @@
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
+const path = require("path");
 
 const app = express();
 const server = http.createServer(app);
 
 const io = new Server(server, {
-    cors: { origin: "*" }
+    cors: {
+        origin: "*"
+    }
 });
+
+// ============================
+// OPTIONAL: serve frontend
+// (prevents "Cannot GET /")
+// ============================
+
+app.use(express.static(path.join(__dirname, "public")));
 
 // ============================
 // STATE
 // ============================
 
 let waitingQueue = [];
-let socketRoomMap = new Map();
+const socketRoomMap = new Map();
 
 // ============================
 // HELPERS
@@ -24,12 +34,20 @@ function removeFromQueue(socketId) {
     waitingQueue = waitingQueue.filter(s => s.id !== socketId);
 }
 
-function getPartnerRoom(socketId) {
-    return socketRoomMap.get(socketId);
+function leaveRoom(socket) {
+    const room = socketRoomMap.get(socket.id);
+
+    if (room) {
+        socket.leave(room);
+        socket.to(room).emit("partner-disconnected");
+        socketRoomMap.delete(socket.id);
+    }
+
+    return room;
 }
 
 // ============================
-// SOCKET CONNECTION
+// SOCKET.IO
 // ============================
 
 io.on("connection", (socket) => {
@@ -44,14 +62,13 @@ io.on("connection", (socket) => {
 
         removeFromQueue(socket.id);
 
-        // prevent double matchmaking
         if (socketRoomMap.has(socket.id)) return;
 
         if (waitingQueue.length > 0) {
 
             const partner = waitingQueue.shift();
 
-            if (!partner || partner.disconnected) {
+            if (!partner || !partner.connected) {
                 socket.emit("waiting");
                 return;
             }
@@ -88,23 +105,18 @@ io.on("connection", (socket) => {
 
     socket.on("next-stranger", () => {
 
-        const room = socketRoomMap.get(socket.id);
-
-        if (room) {
-            socket.to(room).emit("partner-disconnected");
-
-            socket.leave(room);
-            socketRoomMap.delete(socket.id);
-        }
-
+        leaveRoom(socket);
         removeFromQueue(socket.id);
 
-        waitingQueue.push(socket);
+        if (!waitingQueue.find(s => s.id === socket.id)) {
+            waitingQueue.push(socket);
+        }
+
         socket.emit("waiting");
     });
 
     // ============================
-    // WEBRTC RELAY
+    // WEBRTC SIGNALING
     // ============================
 
     socket.on("offer", ({ room, offer }) => {
@@ -128,20 +140,16 @@ io.on("connection", (socket) => {
         console.log("User disconnected:", socket.id);
 
         removeFromQueue(socket.id);
-
-        const room = socketRoomMap.get(socket.id);
-
-        if (room) {
-            socket.to(room).emit("partner-disconnected");
-            socketRoomMap.delete(socket.id);
-        }
+        leaveRoom(socket);
     });
 });
 
 // ============================
-// START SERVER
+// START SERVER (RENDER SAFE)
 // ============================
 
-server.listen(3000, () => {
-    console.log("Server running on http://localhost:3000");
+const PORT = process.env.PORT || 3000;
+
+server.listen(PORT, () => {
+    console.log("Server running on port", PORT);
 });
